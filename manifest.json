@@ -1,0 +1,10 @@
+{
+	"name": "HealthBarViewer",
+	"version_number": "0.0.1",
+	"website_url": "https://github.com/6thmoon",
+	"description": 
+		"Increase duration of enemy health bar visibility in combat.",
+	"dependencies": [
+		"bbepis-BepInExPack-5.4.2100"
+	]
+}
