@@ -6,6 +6,9 @@ All of these parameters are easily customizable via the built-in [*r2modman*](ht
 
 ## Version History
 
+#### `0.1.1`
+- Aiming directly at an enemy will refresh the health bar indicator.
+
 #### `0.1.0`
 - Add configuration file; remove placeholder icon.
 - Introduce parameter to limit visibility beyond a certain range.

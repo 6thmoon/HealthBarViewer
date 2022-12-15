@@ -18,41 +18,61 @@ namespace Local.HealthBar.Viewer
 	[BepInPlugin("local.healthbar.viewer", "HealthBarViewer", versionNumber)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const string versionNumber = "0.1.0";
-
-		private static float duration, threshold, range;
-		private const float interval = 2.0f;
+		public const string versionNumber = "0.1.1";
+		private static float duration, threshold, range, delay, interval;
 
 		public void Awake()
 		{
-			const string section = "General";
+			const string general = "General", other = "Other";
+			const float percent = 100, millisecond = 1000;
 
 			duration = Config.Bind(
-					section: section,
+					section: general,
 					key: "Minimum Duration",
 					defaultValue: 8u,
-					description: "After an ally deals damage, the target's health bar will" +
-						" remain visible for this many seconds."
+					description:
+						"After an ally deals damage, the target's health bar will remain " +
+						"visible for this many seconds."
 				).Value;
 
 			threshold = Config.Bind(
-					section: section,
+					section: general,
 					key: "Health Threshold",
 					defaultValue: 75f,
 					new ConfigDescription(
-						"Enemies at this hit point percentage (or below) remain visible" +
-							" indefinitely.",
-						new AcceptableValueRange<float>(0, 100))
-				).Value / 100;
+						"Enemies at this hit point percentage (or below) remain visible " +
+						"indefinitely.",
+						new AcceptableValueRange<float>(0, percent))
+				).Value / percent;
 
 			range = Config.Bind(
-					section: section,
+					section: general,
 					key: "Maximum Range",
-					defaultValue: 120u,
+					defaultValue: 60u,
 					description:
 						"Remove health bar regardless of health threshold if distance to " +
 						"target exceeds this value in meters. Set to zero for unlimited range."
 				).Value;
+
+			delay = Config.Bind(
+					section: other,
+					key: "Targeting Delay",
+					defaultValue: 0u,
+					description:
+						"Aiming directly at an enemy will refresh the health bar indicator. " +
+						"This extends the duration for the specified number of milliseconds. " +
+						"However, minimum duration parameter is used instead for targets " +
+						"below the health threshold."
+				).Value / millisecond;
+
+			interval = Config.Bind(
+					section: other,
+					key: "Refresh Interval",
+					defaultValue: 500u,
+					description:
+						"How often to check target health/range (in milliseconds). Note that " +
+						"decreasing this value could negatively affect performance."
+				).Value / millisecond;
 
 			ReplaceEventHandler();
 			Harmony.CreateAndPatchAll(typeof(Plugin));
@@ -141,6 +161,38 @@ namespace Local.HealthBar.Viewer
 			foreach ( CombatHealthBarViewer viewer in CombatHealthBarViewer.instancesList )
 				if ( viewer.viewerBodyObject && attacker == viewer.viewerTeamIndex )
 					viewer.HandleDamage(target, victim);
+		}
+
+		[HarmonyPatch(typeof(CameraRigController), nameof(CameraRigController.Update))]
+		[HarmonyPostfix]
+		private static void UpdateCrosshair(CameraRigController __instance)
+		{
+			var data = __instance.cameraMode?.camToRawInstanceData.GetValueSafe(__instance)
+					as RoR2.CameraModes.CameraModePlayerBasic.InstanceData;
+
+			__instance.lastCrosshairHurtBox = data?.lastCrosshairHurtBox;
+		}
+
+		[HarmonyPatch(typeof(CombatHealthBarViewer), nameof(CombatHealthBarViewer.Update))]
+		[HarmonyPrefix]
+		private static bool ShowCrosshairTarget(CombatHealthBarViewer __instance)
+		{
+			if ( __instance.crosshairTarget )
+			{
+				float delay = Plugin.delay;
+				if ( __instance.crosshairTarget.combinedHealthFraction <= threshold )
+					delay = duration;
+
+				if ( delay > 0 )
+				{
+					CombatHealthBarViewer.HealthBarInfo
+							info = __instance.GetHealthBarInfo(__instance.crosshairTarget);
+					info.endTime = Mathf.Max(info.endTime, Time.time + delay);
+				}
+			}
+
+			__instance.SetDirty();
+			return false;
 		}
 	}
 }
