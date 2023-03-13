@@ -18,8 +18,8 @@ namespace Local.HealthBar.Viewer
 	[BepInPlugin("local.healthbar.viewer", "HealthBarViewer", versionNumber)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const string versionNumber = "0.1.1";
-		private static float duration, threshold, range, delay, interval;
+		public const string versionNumber = "0.1.2";
+		private static float duration, threshold, range, delay, alpha, interval;
 
 		public void Awake()
 		{
@@ -29,7 +29,7 @@ namespace Local.HealthBar.Viewer
 			duration = Config.Bind(
 					section: general,
 					key: "Minimum Duration",
-					defaultValue: 8u,
+					defaultValue: 10u,
 					description:
 						"After an ally deals damage, the target's health bar will remain " +
 						"visible for this many seconds."
@@ -48,7 +48,7 @@ namespace Local.HealthBar.Viewer
 			range = Config.Bind(
 					section: general,
 					key: "Maximum Range",
-					defaultValue: 60u,
+					defaultValue: 100u,
 					description:
 						"Remove health bar regardless of health threshold if distance to " +
 						"target exceeds this value in meters. Set to zero for unlimited range."
@@ -64,6 +64,16 @@ namespace Local.HealthBar.Viewer
 						"However, minimum duration parameter is used instead for targets " +
 						"below the health threshold."
 				).Value / millisecond;
+
+			alpha = Config.Bind(
+					section: other,
+					key: "Alpha Channel",
+					defaultValue: 100f,
+					new ConfigDescription(
+						"Use this parameter to adjust transparency/opacity of the health bar " +
+						"interface.",
+						new AcceptableValueRange<float>(0, percent))
+				).Value / percent;
 
 			interval = Config.Bind(
 					section: other,
@@ -113,9 +123,14 @@ namespace Local.HealthBar.Viewer
 		}
 
 		[HarmonyPatch(typeof(CombatHealthBarViewer), nameof(CombatHealthBarViewer.Awake))]
-		[HarmonyPrefix]
-		private static void IncreaseDuration(CombatHealthBarViewer __instance)
-				=> __instance.healthBarDuration = duration;
+		[HarmonyPostfix]
+		private static void ApplySettings(CombatHealthBarViewer __instance)
+		{
+			__instance.healthBarDuration = duration;
+
+			if ( alpha != 1.0f && __instance.gameObject )
+				__instance.gameObject.AddComponent<CanvasGroup>().alpha = alpha;
+		}
 
 		[HarmonyPatch(typeof(CombatHealthBarViewer), nameof(CombatHealthBarViewer.CleanUp))]
 		[HarmonyPrefix]

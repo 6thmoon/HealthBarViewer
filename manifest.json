@@ -1,6 +1,6 @@
 {
 	"name": "HealthBarViewer",
-	"version_number": "0.1.1",
+	"version_number": "0.1.2",
 	"website_url": "https://github.com/6thmoon/HealthBarViewer",
 	"description": "Improve enemy health bar visibility in combat.",
 	"dependencies": [

@@ -6,17 +6,19 @@ All of these parameters are easily customizable via the built-in [*r2modman*](ht
 
 ## Version History
 
+#### `0.1.2`
+- Transparency/opacity of the interface can be adjusted in the configuration file.
+
 #### `0.1.1`
 - Aiming directly at an enemy will refresh the health bar indicator.
 
 #### `0.1.0`
-- Add configuration file; remove placeholder icon.
-- Introduce parameter to limit visibility beyond a certain range.
-- Publish source code and update documentation.
+- All parameters are now configurable.
+- Introduce option to limit visibility beyond a certain range.
 
 #### `0.0.2`
 - Allies reveal enemy health upon dealing damage.
-- Reduced duration to eight seconds for targets above 75% HP.
+- Reduce duration based on health threshold.
 
 #### `0.0.1`
 - Enemy health bars remain visible indefinitely.
