@@ -9,22 +9,41 @@ using System.Runtime.CompilerServices;
 using System.Security.Permissions;
 using UnityEngine;
 
-[assembly: AssemblyVersion(Local.HealthBar.Viewer.Plugin.versionNumber)]
+[assembly: AssemblyVersion(Local.HealthBar.Viewer.Plugin.version)]
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
-		// Allow private member access via publicized assemblies.
 
 namespace Local.HealthBar.Viewer
 {
-	[BepInPlugin("local.healthbar.viewer", "HealthBarViewer", versionNumber)]
+	[BepInPlugin(identifier, "HealthBarViewer", version)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const string versionNumber = "0.1.2";
-		private static float duration, threshold, range, delay, alpha, interval;
+		public const string version = "0.1.2", identifier = "local.healthbar.viewer";
+
+		private class ConfigValue<T> : ConfigValue<T, T>
+		{
+			public ConfigValue(ConfigEntry<T> entry) : base(entry) => convert = _ => _;
+			public static implicit operator ConfigValue<T>(ConfigEntry<T> entry)
+					=> new(entry);
+		}
+
+		private class ConfigValue<T, U>(ConfigEntry<T> entry)
+		{
+			private readonly ConfigEntry<T> entry = entry;
+			public Func<T, U> convert;
+
+			public static implicit operator ConfigValue<T, U>(ConfigEntry<T> entry)
+					=> new(entry);
+			public static implicit operator U(ConfigValue<T, U> configuration)
+					=> configuration.convert(configuration.entry.Value);
+		}
+
+		private static ConfigValue<uint> duration, range;
+		private static ConfigValue<float> threshold, alpha;
+		private static ConfigValue<uint, float> delay, interval;
 
 		public void Awake()
 		{
 			const string general = "General", other = "Other";
-			const float percent = 100, millisecond = 1000;
 
 			duration = Config.Bind(
 					section: general,
@@ -33,7 +52,7 @@ namespace Local.HealthBar.Viewer
 					description:
 						"After an ally deals damage, the target's health bar will remain " +
 						"visible for this many seconds."
-				).Value;
+				);
 
 			threshold = Config.Bind(
 					section: general,
@@ -41,9 +60,10 @@ namespace Local.HealthBar.Viewer
 					defaultValue: 75f,
 					new ConfigDescription(
 						"Enemies at this hit point percentage (or below) remain visible " +
-						"indefinitely.",
-						new AcceptableValueRange<float>(0, percent))
-				).Value / percent;
+						"indefinitely.", new AcceptableValueRange<float>(0, 100))
+				);
+
+			threshold.convert = percent;
 
 			range = Config.Bind(
 					section: general,
@@ -52,7 +72,7 @@ namespace Local.HealthBar.Viewer
 					description:
 						"Remove health bar regardless of health threshold if distance to " +
 						"target exceeds this value in meters. Set to zero for unlimited range."
-				).Value;
+				);
 
 			delay = Config.Bind(
 					section: other,
@@ -63,17 +83,20 @@ namespace Local.HealthBar.Viewer
 						"This extends the duration for the specified number of milliseconds. " +
 						"However, minimum duration parameter is used instead for targets " +
 						"below the health threshold."
-				).Value / millisecond;
+				);
+
+			delay.convert = milliseconds;
 
 			alpha = Config.Bind(
 					section: other,
 					key: "Alpha Channel",
-					defaultValue: 100f,
+					defaultValue: 85f,
 					new ConfigDescription(
 						"Use this parameter to adjust transparency/opacity of the health bar " +
-						"interface.",
-						new AcceptableValueRange<float>(0, percent))
-				).Value / percent;
+						"interface.", new AcceptableValueRange<float>(0, 100))
+				);
+
+			alpha.convert = percent;
 
 			interval = Config.Bind(
 					section: other,
@@ -82,7 +105,12 @@ namespace Local.HealthBar.Viewer
 					description:
 						"How often to check target health/range (in milliseconds). Note that " +
 						"decreasing this value could negatively affect performance."
-				).Value / millisecond;
+				);
+
+			interval.convert = milliseconds;
+
+			static float percent(float input) => input / 100f;
+			static float milliseconds(uint input) => input / 1000f;
 
 			ReplaceEventHandler();
 			Harmony.CreateAndPatchAll(typeof(Plugin));
