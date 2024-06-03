@@ -17,7 +17,7 @@ namespace Local.HealthBar.Viewer
 	[BepInPlugin(identifier, "HealthBarViewer", version)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const string version = "0.1.2", identifier = "local.healthbar.viewer";
+		public const string version = "0.2.0", identifier = "local.healthbar.viewer";
 
 		private class ConfigValue<T> : ConfigValue<T, T>
 		{
@@ -51,7 +51,7 @@ namespace Local.HealthBar.Viewer
 					key: "Minimum Duration",
 					defaultValue: 10u,
 					description:
-						"After an ally deals damage, the target's health bar will remain " +
+						"After damage is dealt, the target's health bar will remain " +
 						"visible for this many seconds."
 				);
 
@@ -60,7 +60,7 @@ namespace Local.HealthBar.Viewer
 					key: "Health Threshold",
 					defaultValue: 75f,
 					new ConfigDescription(
-						"Enemies at this hit point percentage (or below) remain visible " +
+						"Enemies at this hit point percentage or below remain visible " +
 						"indefinitely.", new AcceptableValueRange<float>(0, 100))
 				);
 
@@ -79,7 +79,8 @@ namespace Local.HealthBar.Viewer
 					section: general,
 					key: "Allied Targets",
 					defaultValue: true,
-					description: ""
+					description:
+						"Determines whether allies reveal their target upon dealing damage."
 				);
 
 			delay = Config.Bind(
@@ -87,10 +88,9 @@ namespace Local.HealthBar.Viewer
 					key: "Targeting Delay",
 					defaultValue: 0u,
 					description:
-						"Aiming directly at an enemy will refresh the health bar indicator. " +
-						"This extends the duration for the specified number of milliseconds. " +
-						"However, minimum duration parameter is used instead for targets " +
-						"below the health threshold."
+						"Aiming directly at an enemy will display their health for this " +
+						"many milliseconds. If target is below the health threshold, minimum " +
+						"duration parameter is used instead."
 				);
 
 			delay.convert = milliseconds;
@@ -111,7 +111,7 @@ namespace Local.HealthBar.Viewer
 					key: "Refresh Interval",
 					defaultValue: 500u,
 					description:
-						"How often to check target health/range (in milliseconds). Note that " +
+						"How often to check target health/range, in milliseconds. Note that " +
 						"decreasing this value could negatively affect performance."
 				);
 
