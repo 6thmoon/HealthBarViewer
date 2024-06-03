@@ -39,6 +39,7 @@ namespace Local.HealthBar.Viewer
 
 		private static ConfigValue<uint> duration, range;
 		private static ConfigValue<float> threshold, alpha;
+		private static ConfigValue<bool> ally;
 		private static ConfigValue<uint, float> delay, interval;
 
 		public void Awake()
@@ -72,6 +73,13 @@ namespace Local.HealthBar.Viewer
 					description:
 						"Remove health bar regardless of health threshold if distance to " +
 						"target exceeds this value in meters. Set to zero for unlimited range."
+				);
+
+			ally = Config.Bind(
+					section: general,
+					key: "Allied Targets",
+					defaultValue: true,
+					description: ""
 				);
 
 			delay = Config.Bind(
@@ -198,12 +206,21 @@ namespace Local.HealthBar.Viewer
 			HealthComponent target = message.victim.GetComponent<HealthComponent>();
 			if ( ! target || target.dontShowHealthbar ) return;
 
-			TeamIndex attacker = TeamComponent.GetObjectTeam(message.attacker),
-					victim = TeamComponent.GetObjectTeam(message.victim);
+			foreach ( CombatHealthBarViewer instance in CombatHealthBarViewer.instancesList )
+			{
+				if ( ! instance.viewerBodyObject )
+					continue;
 
-			foreach ( CombatHealthBarViewer viewer in CombatHealthBarViewer.instancesList )
-				if ( viewer.viewerBodyObject && attacker == viewer.viewerTeamIndex )
-					viewer.HandleDamage(target, victim);
+				object player = instance.viewerBodyObject, attacker = message.attacker;
+				if ( ally )
+				{
+					player = instance.viewerTeamIndex;
+					attacker = TeamComponent.GetObjectTeam(message.attacker);
+				}
+
+				if ( player.Equals(attacker) )
+					instance.HandleDamage(target, TeamComponent.GetObjectTeam(message.victim));
+			}
 		}
 
 		[HarmonyPatch(typeof(CameraRigController), nameof(CameraRigController.Update))]
