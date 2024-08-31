@@ -17,7 +17,7 @@ namespace Local.HealthBar.Viewer
 	[BepInPlugin(identifier, "HealthBarViewer", version)]
 	public class Plugin : BaseUnityPlugin
 	{
-		public const string version = "0.2.0", identifier = "local.healthbar.viewer";
+		public const string version = "1.0.0", identifier = "local.healthbar.viewer";
 
 		private class ConfigValue<T> : ConfigValue<T, T>
 		{
@@ -223,14 +223,22 @@ namespace Local.HealthBar.Viewer
 			}
 		}
 
-		[HarmonyPatch(typeof(CameraRigController), nameof(CameraRigController.Update))]
+		[HarmonyPatch(typeof(CameraRigController), nameof(CameraRigController.SetCameraState))]
 		[HarmonyPostfix]
 		private static void UpdateCrosshair(CameraRigController __instance)
 		{
 			var data = __instance.cameraMode?.camToRawInstanceData.GetValueSafe(__instance)
 					as RoR2.CameraModes.CameraModePlayerBasic.InstanceData;
 
-			__instance.lastCrosshairHurtBox = data?.lastCrosshairHurtBox;
+			HurtBox target = data?.lastCrosshairHurtBox;
+			__instance.lastCrosshairHurtBox = target;
+
+			if ( __instance.hud )
+			{
+				CombatHealthBarViewer health = __instance.hud.combatHealthBarViewer;
+				if ( health )
+					health.crosshairTarget = target ? target.healthComponent : null;
+			}
 		}
 
 		[HarmonyPatch(typeof(CombatHealthBarViewer), nameof(CombatHealthBarViewer.Update))]
